@@ -9,8 +9,11 @@ const DEV_API_URL = Platform.select({
   default: 'http://localhost:8000',
 });
 
+// Use environment variable in production, fallback to dev URL
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || DEV_API_URL;
+
 const api = axios.create({
-  baseURL: DEV_API_URL,
+  baseURL: API_BASE_URL,
   timeout: 30000, // Long timeout for transcription
 });
 
