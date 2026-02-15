@@ -86,13 +86,21 @@ const HomeScreen = () => {
 
       const result = await transcribeYoutube(url);
       
+      // DEBUG: Alert exactly what we received to diagnose missing data
+      Alert.alert(
+        'Debug: Backend Response', 
+        `Keys: ${result ? Object.keys(result).join(', ') : 'null'}\n` +
+        `musicxml length: ${result && result.musicxml ? result.musicxml.length : '0/undefined'}\n` +
+        `Preview: ${JSON.stringify(result).slice(0, 100)}`
+      );
+
       clearInterval(progressTimer);
       setStatusMessage('Done!');
       
-      if (result.musicxml) {
+      if (result && result.musicxml && typeof result.musicxml === 'string' && result.musicxml.length > 0) {
         setMusicXml(result.musicxml);
       } else {
-        Alert.alert('Error', 'No sheet music generated');
+        Alert.alert('Error', 'No sheet music generated. Backend returned empty result.');
       }
     } catch (error) {
       console.error(error);
@@ -150,12 +158,26 @@ const HomeScreen = () => {
         {musicXml ? (
           <>
             <SheetMusicViewer musicXml={musicXml} isLoading={false} />
-            <TouchableOpacity 
-              style={styles.downloadButton}
-              onPress={downloadMusicXML}
-            >
-              <Text style={styles.downloadButtonText}>Download MusicXML</Text>
-            </TouchableOpacity>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.downloadBtn]}
+                onPress={downloadMusicXML}
+              >
+                <Text style={styles.actionButtonText}>Download MusicXML</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.printBtn]}
+                onPress={() => {
+                  if (typeof window !== 'undefined' && window.print) {
+                    window.print();
+                  } else {
+                    Alert.alert('Print', 'Printing not available on this device');
+                  }
+                }}
+              >
+                <Text style={styles.actionButtonText}>Print Sheet (PDF)</Text>
+              </TouchableOpacity>
+            </View>
           </>
         ) : (
           !isLoading && (
@@ -263,16 +285,35 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   downloadButton: {
-    backgroundColor: '#34C759',
-    padding: 12,
-    margin: 10,
-    borderRadius: 8,
-    alignItems: 'center',
+    display: 'none', // Deprecated, replaced by buttonContainer
   },
   downloadButtonText: {
+    display: 'none', // Deprecated
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    padding: 10,
+    gap: 10,
+  },
+  actionButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  downloadBtn: {
+    backgroundColor: '#34C759',
+  },
+  printBtn: {
+    backgroundColor: '#007AFF',
+  },
+  actionButtonText: {
     color: '#fff',
     fontWeight: '600',
-    fontSize: 16,
+    fontSize: 14,
+    textAlign: 'center',
   }
 });
 
