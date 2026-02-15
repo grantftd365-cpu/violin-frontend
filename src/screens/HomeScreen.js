@@ -198,6 +198,7 @@ const HomeScreen = () => {
       );
 
       clearInterval(progressTimer);
+      if (window.progressTimer) clearInterval(window.progressTimer);
       setStatusMessage('Done!');
       
       if (result && result.musicxml && typeof result.musicxml === 'string' && result.musicxml.length > 0) {
@@ -229,7 +230,7 @@ const HomeScreen = () => {
       <StatusBar style="auto" />
       
       <View style={styles.header}>
-        <Text style={styles.title}>Violin Sheet Gen</Text>
+        <Text style={styles.title}>Violin Sheet Gen (v2.1)</Text>
         <Text style={styles.subtitle}>YouTube / Bilibili to Sheet Music</Text>
       </View>
 
@@ -503,4 +504,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#007AFF',
   },
   actionButtonText: {
-    color:
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+    textAlign: 'center',
+  }
+});
+
+export default HomeScreen;
