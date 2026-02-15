@@ -17,6 +17,7 @@ import SheetMusicViewer from '../components/SheetMusicViewer';
 const HomeScreen = () => {
   const [url, setUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [musicXml, setMusicXml] = useState(null);
   const [statusMessage, setStatusMessage] = useState('');
 
@@ -57,9 +58,18 @@ const HomeScreen = () => {
   };
 
   const handleFileUpload = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
+    // STEP 1: File selection
+    Alert.alert('Debug: Step 1/6', 'File input triggered!');
     
+    const file = event.target.files[0];
+    if (!file) {
+      Alert.alert('Debug: Error', 'No file selected');
+      return;
+    }
+    
+    // STEP 2: Validation
+    Alert.alert('Debug: Step 2/6', `Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+
     // Validate file size (max 100MB for video)
     const maxSize = 100 * 1024 * 1024; // 100MB
     if (file.size > maxSize) {
@@ -67,47 +77,42 @@ const HomeScreen = () => {
       return;
     }
     
+    // STEP 3: State update
+    Alert.alert('Debug: Step 3/6', 'Starting upload process...');
     setIsLoading(true);
+    setUploadProgress(0);
     setStatusMessage(`Uploading ${file.name}...`);
     setMusicXml(null);
     
     try {
-      let elapsedSeconds = 0;
-      const progressTimer = setInterval(() => {
-        elapsedSeconds += 10;
-        setStatusMessage(prev => {
-          if (elapsedSeconds === 10) return `Uploading ${file.name}...`;
-          if (elapsedSeconds === 20) return 'Transcribing to MIDI... (this takes ~30s)';
-          if (elapsedSeconds === 30) return 'Converting to Sheet Music...';
-          if (elapsedSeconds === 60) return 'Still working... AI is analyzing the audio (1m)...';
-          if (elapsedSeconds === 90) return 'Almost there... generating sheet music (1m30s)...';
-          if (elapsedSeconds === 120) return 'Processing notes and rhythms (2m)...';
-          return prev;
-        });
-      }, 10000);
+      // STEP 4: Call API
+      Alert.alert('Debug: Step 4/6', 'Sending file to backend...');
       
-      const result = await uploadAudio(file);
+      const result = await uploadAudio(file, (progress) => {
+        setUploadProgress(progress);
+        setStatusMessage(`Uploading: ${progress}%`);
+      });
       
-      // DEBUG: Alert exactly what we received
+      // STEP 5: Response received
       Alert.alert(
-        'Debug: Backend Response', 
-        `Keys: ${result ? Object.keys(result).join(', ') : 'null'}\n` +
-        `musicxml length: ${result && result.musicxml ? result.musicxml.length : '0/undefined'}\n` +
-        `Preview: ${JSON.stringify(result).slice(0, 100)}`
+        'Debug: Step 5/6', 
+        `Response received!\nKeys: ${result ? Object.keys(result).join(', ') : 'null'}\nXML Length: ${result?.musicxml?.length}`
       );
       
-      clearInterval(progressTimer);
       setStatusMessage('Done!');
       
       if (result && result.musicxml && typeof result.musicxml === 'string' && result.musicxml.length > 0) {
+        // STEP 6: Setting State
+        Alert.alert('Debug: Step 6/6', 'Setting sheet music state...');
         setMusicXml(result.musicxml);
       } else {
         Alert.alert('Error', 'No sheet music generated from uploaded file');
       }
     } catch (error) {
       console.error(error);
-      let errorMessage = 'Failed to process uploaded audio.';
+      Alert.alert('Debug: Catch Error', `Code: ${error.code}\nMessage: ${error.message}\nResponse: ${JSON.stringify(error.response?.data)}`);
       
+      let errorMessage = 'Failed to process uploaded audio.';
       if (error.code === 'ECONNABORTED') {
         errorMessage = 'Request timed out. The file may be too large or the server is busy.';
       } else if (error.response?.data?.detail) {
@@ -120,6 +125,7 @@ const HomeScreen = () => {
       setStatusMessage('Failed');
     } finally {
       setIsLoading(false);
+      setUploadProgress(0);
       // Reset file input
       event.target.value = '';
     }
@@ -254,7 +260,15 @@ const HomeScreen = () => {
       </View>
 
       {isLoading && (
-        <Text style={styles.statusText}>{statusMessage}</Text>
+        <View style={styles.statusContainer}>
+          <Text style={styles.statusText}>{statusMessage}</Text>
+          {uploadProgress > 0 && (
+            <View style={styles.progressBarContainer}>
+              <View style={[styles.progressBar, { width: `${uploadProgress}%` }]} />
+            </View>
+          )}
+          {uploadProgress > 0 && <Text style={styles.progressText}>{uploadProgress}%</Text>}
+        </View>
       )}
 
       <View style={styles.viewerContainer}>
@@ -377,6 +391,28 @@ const styles = StyleSheet.create({
   uploadHint: {
     fontSize: 12,
     color: '#999',
+  },
+  statusContainer: {
+    padding: 10,
+    alignItems: 'center',
+    width: '100%',
+  },
+  progressBarContainer: {
+    width: '80%',
+    height: 10,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 5,
+    marginTop: 5,
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: '#007AFF',
+  },
+  progressText: {
+    marginTop: 5,
+    fontSize: 12,
+    color: '#666',
   },
   statusText: {
     textAlign: 'center',

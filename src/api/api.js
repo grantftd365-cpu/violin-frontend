@@ -74,7 +74,7 @@ export const transcribeYoutube = async (url) => {
   }
 };
 
-export const uploadAudio = async (file) => {
+export const uploadAudio = async (file, onProgress) => {
   try {
     console.log(`Uploading audio file: ${file.name} (${file.size} bytes)`);
     
@@ -86,6 +86,11 @@ export const uploadAudio = async (file) => {
         'Content-Type': 'multipart/form-data',
       },
       timeout: 300000, // 5 minutes for processing
+      onUploadProgress: (progressEvent) => {
+        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        console.log(`Upload progress: ${percentCompleted}%`);
+        if (onProgress) onProgress(percentCompleted);
+      },
     });
     
     return response.data;
