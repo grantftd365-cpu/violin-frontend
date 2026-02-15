@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Text, Platform } from 'react-native';
 import { WebView } from 'react-native-webview';
 
 // Helper to base64 encode unicode strings
@@ -95,31 +95,39 @@ const SheetMusicViewer = ({ musicXml, isLoading }) => {
 
   return (
     <View style={styles.container}>
-      <WebView
-        originWhitelist={['*']}
-        source={{ html: htmlContent }}
-        style={styles.webview}
-        javaScriptEnabled={true}
-        domStorageEnabled={true}
-        onMessage={(event) => {
-          try {
-            const data = JSON.parse(event.nativeEvent.data);
-            console.log('WebView Message:', data);
-            if (data.type === 'error') {
-              setHasError(true);
-              setErrorMsg(data.message);
+      {Platform.OS === 'web' ? (
+        <iframe
+          srcDoc={htmlContent}
+          style={{ width: '100%', height: '100%', border: 'none' }}
+          title="Sheet Music"
+        />
+      ) : (
+        <WebView
+          originWhitelist={['*']}
+          source={{ html: htmlContent }}
+          style={styles.webview}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          onMessage={(event) => {
+            try {
+              const data = JSON.parse(event.nativeEvent.data);
+              console.log('WebView Message:', data);
+              if (data.type === 'error') {
+                setHasError(true);
+                setErrorMsg(data.message);
+              }
+            } catch (e) {
+              console.log('WebView Raw Message:', event.nativeEvent.data);
             }
-          } catch (e) {
-            console.log('WebView Raw Message:', event.nativeEvent.data);
-          }
-        }}
-        onError={(syntheticEvent) => {
-          const { nativeEvent } = syntheticEvent;
-          console.warn('WebView error: ', nativeEvent);
-          setHasError(true);
-          setErrorMsg('WebView failed to load');
-        }}
-      />
+          }}
+          onError={(syntheticEvent) => {
+            const { nativeEvent } = syntheticEvent;
+            console.warn('WebView error: ', nativeEvent);
+            setHasError(true);
+            setErrorMsg('WebView failed to load');
+          }}
+        />
+      )}
     </View>
   );
 };
