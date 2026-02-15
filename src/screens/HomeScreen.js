@@ -223,26 +223,23 @@ const HomeScreen = () => {
     }
   };
 
-  const handleImslpSearch = async () => {
+  const handleImslpSearch = () => {
     if (!searchKeyword.trim()) {
       alert('Please enter a song name to search');
       return;
     }
     
-    setIsSearching(true);
-    setSearchResults([]);
+    // Construct Google Search URL targeting IMSLP PDFs
+    // site:imslp.org -> Restrict to IMSLP
+    // filetype:pdf -> Only PDF files
+    // violin -> Ensure it's for violin
+    const query = `site:imslp.org filetype:pdf ${searchKeyword} violin`;
+    const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
     
-    try {
-      const result = await searchImslp(searchKeyword);
-      if (result.results && result.results.length > 0) {
-        setSearchResults(result.results);
-      } else {
-        alert('No results found on IMSLP. Try a different search term.');
-      }
-    } catch (error) {
-      alert(`Search failed: ${error.message || 'Unknown error'}`);
-    } finally {
-      setIsSearching(false);
+    if (Platform.OS === 'web') {
+      window.open(searchUrl, '_blank');
+    } else {
+      alert(`Search feature requires browser. Please visit:\n${searchUrl}`);
     }
   };
 
@@ -251,7 +248,7 @@ const HomeScreen = () => {
       <StatusBar style="auto" />
       
       <View style={styles.header}>
-        <Text style={styles.title}>Violin Sheet Gen (v2.7)</Text>
+        <Text style={styles.title}>Violin Sheet Gen (v2.8)</Text>
         <Text style={styles.subtitle}>YouTube / Bilibili to Sheet Music</Text>
       </View>
 
@@ -267,38 +264,16 @@ const HomeScreen = () => {
             autoCapitalize="none"
           />
           <TouchableOpacity 
-            style={[styles.searchButton, isSearching && styles.buttonDisabled]}
+            style={styles.searchButton}
             onPress={handleImslpSearch}
-            disabled={isSearching}
           >
             <Text style={styles.searchButtonText}>
-              {isSearching ? '...' : 'Search'}
+              Search Google
             </Text>
           </TouchableOpacity>
         </View>
         
-        {/* Search Results */}
-        {searchResults.length > 0 && (
-          <View style={styles.resultsContainer}>
-            <Text style={styles.resultsTitle}>Found on IMSLP:</Text>
-            {searchResults.map((result, index) => (
-              <TouchableOpacity 
-                key={index}
-                style={styles.resultItem}
-                onPress={() => {
-                  if (typeof window !== 'undefined') {
-                    window.open(result.link, '_blank');
-                  }
-                }}
-              >
-                <Text style={styles.resultTitle} numberOfLines={1}>
-                  {index + 1}. {result.title}
-                </Text>
-                <Text style={styles.resultLink}>Open PDF →</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
+        {/* Results removed - opening in new tab instead */}
       </View>
 
       <View style={styles.inputContainer}>
