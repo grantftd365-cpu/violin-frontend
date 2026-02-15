@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { WebView } from 'react-native-webview';
 
@@ -8,10 +8,23 @@ const utf8_to_b64 = (str) => {
 };
 
 const SheetMusicViewer = ({ musicXml, isLoading }) => {
+  const [hasError, setHasError] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <View style={[styles.container, styles.errorContainer]}>
+        <Text style={styles.errorTitle}>Failed to render sheet music</Text>
+        <Text style={styles.errorText}>Viewer Error: {errorMsg}</Text>
+        <Text style={styles.errorSubtext}>Try downloading the file instead.</Text>
       </View>
     );
   }
@@ -92,6 +105,10 @@ const SheetMusicViewer = ({ musicXml, isLoading }) => {
           try {
             const data = JSON.parse(event.nativeEvent.data);
             console.log('WebView Message:', data);
+            if (data.type === 'error') {
+              setHasError(true);
+              setErrorMsg(data.message);
+            }
           } catch (e) {
             console.log('WebView Raw Message:', event.nativeEvent.data);
           }
@@ -99,6 +116,8 @@ const SheetMusicViewer = ({ musicXml, isLoading }) => {
         onError={(syntheticEvent) => {
           const { nativeEvent } = syntheticEvent;
           console.warn('WebView error: ', nativeEvent);
+          setHasError(true);
+          setErrorMsg('WebView failed to load');
         }}
       />
     </View>
@@ -109,7 +128,30 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    minHeight: 300, // Ensure minimum height
+    minHeight: 400, // Ensure minimum height
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  errorContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#fff0f0',
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#d32f2f',
+    marginBottom: 10,
+  },
+  errorText: {
+    color: '#d32f2f',
+    marginBottom: 5,
+    textAlign: 'center',
+  },
+  errorSubtext: {
+    color: '#666',
+    fontSize: 12,
   },
   loadingContainer: {
     flex: 1,

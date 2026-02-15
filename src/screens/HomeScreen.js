@@ -34,6 +34,28 @@ const HomeScreen = () => {
     checkConnection();
   }, []);
 
+  const downloadMusicXML = () => {
+    if (!musicXml) return;
+    
+    // Create filename based on timestamp
+    const filename = `violin-sheet-${Date.now()}.musicxml`;
+    
+    // Create blob from XML string
+    const blob = new Blob([musicXml], { type: 'application/vnd.recordare.musicxml+xml' });
+    const url = URL.createObjectURL(blob);
+    
+    // Create temporary link and trigger download
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Cleanup
+    URL.revokeObjectURL(url);
+  };
+
   const handleTranscribe = async () => {
     if (!url) {
       Alert.alert('Error', 'Please enter a YouTube or Bilibili URL');
@@ -126,7 +148,15 @@ const HomeScreen = () => {
 
       <View style={styles.viewerContainer}>
         {musicXml ? (
-          <SheetMusicViewer musicXml={musicXml} isLoading={false} />
+          <>
+            <SheetMusicViewer musicXml={musicXml} isLoading={false} />
+            <TouchableOpacity 
+              style={styles.downloadButton}
+              onPress={downloadMusicXML}
+            >
+              <Text style={styles.downloadButtonText}>Download MusicXML</Text>
+            </TouchableOpacity>
+          </>
         ) : (
           !isLoading && (
             <View style={styles.placeholder}>
@@ -231,6 +261,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#aaa',
     textAlign: 'center',
+  },
+  downloadButton: {
+    backgroundColor: '#34C759',
+    padding: 12,
+    margin: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  downloadButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
   }
 });
 
