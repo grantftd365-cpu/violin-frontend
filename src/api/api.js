@@ -10,8 +10,8 @@ const DEV_API_URL = Platform.select({
 });
 
 // Use environment variable in production, fallback to hardcoded Render URL, then dev URL
-// CRITICAL: We hardcode the Render URL here to ensure it works even if env vars fail
-const PROD_API_URL = 'https://violin-backend.onrender.com';
+// CRITICAL: Pointing to Alibaba Cloud server (HTTP) to match frontend (HTTP)
+const PROD_API_URL = 'http://47.251.244.43:8000';
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || PROD_API_URL;
 
 console.log('API_BASE_URL configured:', API_BASE_URL);
