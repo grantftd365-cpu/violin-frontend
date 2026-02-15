@@ -59,11 +59,38 @@ export const browseViolin = async () => {
 
 export const transcribeYoutube = async (url) => {
   try {
-    console.log(`Requesting transcription for: ${url} at ${API_BASE_URL}/transcribe/youtube`);
+    console.log(`Requesting transcription for: ${url}`);
     const response = await api.post('/transcribe/youtube', { url });
+    console.log('Response status:', response.status);
+    console.log('Response headers:', response.headers);
+    console.log('Response data type:', typeof response.data);
+    console.log('Response data keys:', response.data ? Object.keys(response.data) : 'null');
     return response.data;
   } catch (error) {
     console.error('Error transcribing YouTube:', error);
+    console.error('Error response:', error.response?.data);
+    console.error('Error status:', error.response?.status);
+    throw error;
+  }
+};
+
+export const uploadAudio = async (file) => {
+  try {
+    console.log(`Uploading audio file: ${file.name} (${file.size} bytes)`);
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await api.post('/transcribe/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 300000, // 5 minutes for processing
+    });
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error uploading audio:', error);
     throw error;
   }
 };

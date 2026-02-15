@@ -11,7 +11,7 @@ import {
   Alert
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { transcribeYoutube, testBackendConnection } from '../api/api';
+import { transcribeYoutube, testBackendConnection, uploadAudio } from '../api/api';
 import SheetMusicViewer from '../components/SheetMusicViewer';
 
 const HomeScreen = () => {
@@ -54,6 +54,75 @@ const HomeScreen = () => {
     
     // Cleanup
     URL.revokeObjectURL(url);
+  };
+
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    // Validate file size (max 50MB)
+    const maxSize = 50 * 1024 * 1024; // 50MB
+    if (file.size > maxSize) {
+      Alert.alert('Error', 'File too large. Maximum size is 50MB.');
+      return;
+    }
+    
+    setIsLoading(true);
+    setStatusMessage(`Uploading ${file.name}...`);
+    setMusicXml(null);
+    
+    try {
+      let elapsedSeconds = 0;
+      const progressTimer = setInterval(() => {
+        elapsedSeconds += 10;
+        setStatusMessage(prev => {
+          if (elapsedSeconds === 10) return `Uploading ${file.name}...`;
+          if (elapsedSeconds === 20) return 'Transcribing to MIDI... (this takes ~30s)';
+          if (elapsedSeconds === 30) return 'Converting to Sheet Music...';
+          if (elapsedSeconds === 60) return 'Still working... AI is analyzing the audio (1m)...';
+          if (elapsedSeconds === 90) return 'Almost there... generating sheet music (1m30s)...';
+          if (elapsedSeconds === 120) return 'Processing notes and rhythms (2m)...';
+          return prev;
+        });
+      }, 10000);
+      
+      const result = await uploadAudio(file);
+      
+      // DEBUG: Alert exactly what we received
+      Alert.alert(
+        'Debug: Backend Response', 
+        `Keys: ${result ? Object.keys(result).join(', ') : 'null'}\n` +
+        `musicxml length: ${result && result.musicxml ? result.musicxml.length : '0/undefined'}\n` +
+        `Preview: ${JSON.stringify(result).slice(0, 100)}`
+      );
+      
+      clearInterval(progressTimer);
+      setStatusMessage('Done!');
+      
+      if (result && result.musicxml && typeof result.musicxml === 'string' && result.musicxml.length > 0) {
+        setMusicXml(result.musicxml);
+      } else {
+        Alert.alert('Error', 'No sheet music generated from uploaded file');
+      }
+    } catch (error) {
+      console.error(error);
+      let errorMessage = 'Failed to process uploaded audio.';
+      
+      if (error.code === 'ECONNABORTED') {
+        errorMessage = 'Request timed out. The file may be too large or the server is busy.';
+      } else if (error.response?.data?.detail) {
+        errorMessage = `Backend Error: ${error.response.data.detail}`;
+      } else if (error.message) {
+        errorMessage = `Error: ${error.message}`;
+      }
+      
+      Alert.alert('Upload Failed', errorMessage);
+      setStatusMessage('Failed');
+    } finally {
+      setIsLoading(false);
+      // Reset file input
+      event.target.value = '';
+    }
   };
 
   const handleTranscribe = async () => {
@@ -148,6 +217,40 @@ const HomeScreen = () => {
             {isLoading ? 'Processing...' : 'Generate Sheet'}
           </Text>
         </TouchableOpacity>
+      </View>
+
+      <View style={styles.uploadSection}>
+        <Text style={styles.orText}>OR</Text>
+        
+        {/* Hidden file input */}
+        {Platform.OS === 'web' ? (
+          <input
+            type="file"
+            id="audio-upload"
+            accept=".mp3,.wav,.m4a,.ogg,.flac,.aac,.wma,audio/*"
+            style={{ display: 'none' }}
+            onChange={handleFileUpload}
+          />
+        ) : null}
+
+        <TouchableOpacity 
+          style={[styles.uploadButton, isLoading && styles.buttonDisabled]}
+          onPress={() => {
+            if (Platform.OS === 'web') {
+              document.getElementById('audio-upload').click();
+            } else {
+              Alert.alert('Not Supported', 'File upload not supported on native yet');
+            }
+          }}
+          disabled={isLoading}
+        >
+          <Text style={styles.uploadButtonText}>
+            {isLoading ? 'Uploading...' : 'Upload Audio File'}
+          </Text>
+        </TouchableOpacity>
+        <Text style={styles.uploadHint}>
+          Supports: MP3, WAV, M4A, OGG, FLAC, AAC
+        </Text>
       </View>
 
       {isLoading && (
@@ -248,6 +351,32 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontWeight: '600',
+  },
+  uploadSection: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  orText: {
+    color: '#999',
+    marginVertical: 10,
+    fontWeight: 'bold',
+  },
+  uploadButton: {
+    backgroundColor: '#FF9500', // Orange color for upload
+    height: 45,
+    borderRadius: 8,
+    justifyContent: 'center',
+    paddingHorizontal: 30,
+    marginBottom: 5,
+  },
+  uploadButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  uploadHint: {
+    fontSize: 12,
+    color: '#999',
   },
   statusText: {
     textAlign: 'center',
