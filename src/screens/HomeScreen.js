@@ -229,11 +229,10 @@ const HomeScreen = () => {
       return;
     }
     
-    // Construct Google Search URL targeting IMSLP PDFs
-    // site:imslp.org -> Restrict to IMSLP
-    // filetype:pdf -> Only PDF files
-    // violin -> Ensure it's for violin
-    const query = `site:imslp.org filetype:pdf ${searchKeyword} violin`;
+    // Construct smarter search query for full web (including Chinese sites)
+    // Remove site:imslp.org restriction to find songs on other platforms
+    // Add "小提琴谱" to target Chinese resources
+    const query = `${searchKeyword} violin sheet music 小提琴谱`;
     // Use cn.bing.com because Google is blocked in China
     const searchUrl = `https://cn.bing.com/search?q=${encodeURIComponent(query)}`;
     
@@ -249,13 +248,13 @@ const HomeScreen = () => {
       <StatusBar style="auto" />
       
       <View style={styles.header}>
-        <Text style={styles.title}>Violin Sheet Gen (v2.9)</Text>
+        <Text style={styles.title}>Violin Sheet Gen (v3.0)</Text>
         <Text style={styles.subtitle}>YouTube / Bilibili to Sheet Music</Text>
       </View>
 
       {/* IMSLP Search Section */}
       <View style={styles.searchSection}>
-        <Text style={styles.sectionTitle}>Find Standard Sheet Music (IMSLP)</Text>
+        <Text style={styles.sectionTitle}>Find Standard Sheet Music (Web)</Text>
         <View style={styles.searchRow}>
           <TextInput
             style={styles.searchInput}
@@ -269,7 +268,7 @@ const HomeScreen = () => {
             onPress={handleImslpSearch}
           >
             <Text style={styles.searchButtonText}>
-              Search Bing
+              Search Web
             </Text>
           </TouchableOpacity>
         </View>
