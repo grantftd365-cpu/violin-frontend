@@ -1,6 +1,11 @@
 import React from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { WebView } from 'react-native-webview';
+
+// Helper to base64 encode unicode strings
+const utf8_to_b64 = (str) => {
+  return window.btoa(unescape(encodeURIComponent(str)));
+};
 
 const SheetMusicViewer = ({ musicXml, isLoading }) => {
   if (isLoading) {
@@ -15,6 +20,15 @@ const SheetMusicViewer = ({ musicXml, isLoading }) => {
     return null;
   }
 
+  // Use base64 encoding to safely pass XML to WebView
+  // In React Native environment, we might need a polyfill or Buffer, 
+  // but let's try a safer string replacement first if btoa isn't available
+  // Or better: Pass it via postMessage after load, but injecting is simpler if encoded right.
+  // We'll use a robust escaping for now, or assume XML is clean.
+  // Actually, let's use a simpler approach: encodeURI inside the template literal.
+  
+  const encodedXml = encodeURIComponent(musicXml);
+
   // HTML content that loads OpenSheetMusicDisplay via CDN and renders the passed XML
   const htmlContent = `
     <!DOCTYPE html>
@@ -23,29 +37,44 @@ const SheetMusicViewer = ({ musicXml, isLoading }) => {
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
         <script src="https://cdnjs.cloudflare.com/ajax/libs/opensheetmusicdisplay/1.8.8/opensheetmusicdisplay.min.js"></script>
         <style>
-          body { margin: 0; padding: 0; background-color: #fff; }
-          #osmdCanvas { width: 100%; height: 100vh; overflow-y: scroll; }
+          body { margin: 0; padding: 0; background-color: #fff; height: 100vh; display: flex; flex-direction: column; }
+          #osmdCanvas { flex: 1; width: 100%; overflow-y: auto; }
+          #error-msg { color: red; padding: 20px; display: none; }
         </style>
       </head>
       <body>
+        <div id="error-msg"></div>
         <div id="osmdCanvas"></div>
         <script>
-          var osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay("osmdCanvas", {
-            autoResize: true,
-            backend: "svg",
-            drawingParameters: "compacttight", // Optimize for mobile
-            drawTitle: true,
-          });
+          // Error handler
+          window.onerror = function(msg, url, line) {
+            document.getElementById('error-msg').style.display = 'block';
+            document.getElementById('error-msg').innerText = 'Error: ' + msg;
+            window.ReactNativeWebView.postMessage(JSON.stringify({type: 'error', message: msg}));
+          };
 
-          // The XML content is injected here
-          var musicXml = \`${musicXml.replace(/`/g, '\\`').replace(/\${/g, '\\${')}\`;
+          try {
+            var osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay("osmdCanvas", {
+              autoResize: true,
+              backend: "svg",
+              drawingParameters: "compacttight", // Optimize for mobile
+              drawTitle: true,
+            });
 
-          osmd.load(musicXml).then(function() {
-            osmd.render();
-          }, function(err) {
-            console.error(err);
-            window.ReactNativeWebView.postMessage(JSON.stringify({type: 'error', message: err.message}));
-          });
+            // Decode the URI component
+            var musicXml = decodeURIComponent("${encodedXml}");
+
+            osmd.load(musicXml).then(function() {
+              osmd.render();
+              window.ReactNativeWebView.postMessage(JSON.stringify({type: 'success', message: 'Rendered'}));
+            }, function(err) {
+              throw err;
+            });
+          } catch (e) {
+            document.getElementById('error-msg').style.display = 'block';
+            document.getElementById('error-msg').innerText = 'Render Error: ' + e.message;
+            window.ReactNativeWebView.postMessage(JSON.stringify({type: 'error', message: e.message}));
+          }
         </script>
       </body>
     </html>
@@ -60,7 +89,16 @@ const SheetMusicViewer = ({ musicXml, isLoading }) => {
         javaScriptEnabled={true}
         domStorageEnabled={true}
         onMessage={(event) => {
-          console.log('WebView Message:', event.nativeEvent.data);
+          try {
+            const data = JSON.parse(event.nativeEvent.data);
+            console.log('WebView Message:', data);
+          } catch (e) {
+            console.log('WebView Raw Message:', event.nativeEvent.data);
+          }
+        }}
+        onError={(syntheticEvent) => {
+          const { nativeEvent } = syntheticEvent;
+          console.warn('WebView error: ', nativeEvent);
         }}
       />
     </View>
@@ -71,14 +109,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+    minHeight: 300, // Ensure minimum height
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    minHeight: 200,
   },
   webview: {
     flex: 1,
+    backgroundColor: 'transparent',
+    width: '100%',
+    height: '100%',
   },
 });
 
