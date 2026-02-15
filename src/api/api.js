@@ -39,10 +39,12 @@ export const testBackendConnection = async () => {
 
 export const searchImslp = async (keyword) => {
   try {
+    console.log(`[API] Searching IMSLP for: ${keyword}`);
     const response = await api.post('/search/imslp', { keyword });
+    console.log(`[API] IMSLP search results:`, response.data);
     return response.data;
   } catch (error) {
-    console.error('Error searching IMSLP:', error);
+    console.error('[API] IMSLP search error:', error);
     throw error;
   }
 };

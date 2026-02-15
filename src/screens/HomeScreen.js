@@ -11,11 +11,14 @@ import {
   Alert
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { transcribeYoutube, testBackendConnection, uploadAudio } from '../api/api';
+import { transcribeYoutube, testBackendConnection, uploadAudio, searchImslp } from '../api/api';
 import SheetMusicViewer from '../components/SheetMusicViewer';
 
 const HomeScreen = () => {
   const [url, setUrl] = useState('');
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [musicXml, setMusicXml] = useState(null);
@@ -220,13 +223,82 @@ const HomeScreen = () => {
     }
   };
 
+  const handleImslpSearch = async () => {
+    if (!searchKeyword.trim()) {
+      alert('Please enter a song name to search');
+      return;
+    }
+    
+    setIsSearching(true);
+    setSearchResults([]);
+    
+    try {
+      const result = await searchImslp(searchKeyword);
+      if (result.results && result.results.length > 0) {
+        setSearchResults(result.results);
+      } else {
+        alert('No results found on IMSLP. Try a different search term.');
+      }
+    } catch (error) {
+      alert(`Search failed: ${error.message || 'Unknown error'}`);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="auto" />
       
       <View style={styles.header}>
-        <Text style={styles.title}>Violin Sheet Gen (v2.6)</Text>
+        <Text style={styles.title}>Violin Sheet Gen (v2.7)</Text>
         <Text style={styles.subtitle}>YouTube / Bilibili to Sheet Music</Text>
+      </View>
+
+      {/* IMSLP Search Section */}
+      <View style={styles.searchSection}>
+        <Text style={styles.sectionTitle}>Find Standard Sheet Music (IMSLP)</Text>
+        <View style={styles.searchRow}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search song (e.g. Liang Zhu, Canon)"
+            value={searchKeyword}
+            onChangeText={setSearchKeyword}
+            autoCapitalize="none"
+          />
+          <TouchableOpacity 
+            style={[styles.searchButton, isSearching && styles.buttonDisabled]}
+            onPress={handleImslpSearch}
+            disabled={isSearching}
+          >
+            <Text style={styles.searchButtonText}>
+              {isSearching ? '...' : 'Search'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+        
+        {/* Search Results */}
+        {searchResults.length > 0 && (
+          <View style={styles.resultsContainer}>
+            <Text style={styles.resultsTitle}>Found on IMSLP:</Text>
+            {searchResults.map((result, index) => (
+              <TouchableOpacity 
+                key={index}
+                style={styles.resultItem}
+                onPress={() => {
+                  if (typeof window !== 'undefined') {
+                    window.open(result.link, '_blank');
+                  }
+                }}
+              >
+                <Text style={styles.resultTitle} numberOfLines={1}>
+                  {index + 1}. {result.title}
+                </Text>
+                <Text style={styles.resultLink}>Open PDF →</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
       </View>
 
       <View style={styles.inputContainer}>
@@ -368,6 +440,79 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 4,
   },
+  searchSection: {
+    padding: 15,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+  },
+  searchRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  searchInput: {
+    flex: 1,
+    height: 45,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    backgroundColor: '#fafafa',
+  },
+  searchButton: {
+    backgroundColor: '#5856D6',
+    width: 80,
+    height: 45,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  searchButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  resultsContainer: {
+    marginTop: 15,
+    padding: 10,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+  },
+  resultsTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    color: '#555',
+  },
+  resultItem: {
+    padding: 10,
+    backgroundColor: '#fff',
+    borderRadius: 6,
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: '#eee',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  resultTitle: {
+    fontSize: 14,
+    color: '#333',
+    flex: 1,
+    marginRight: 10,
+  },
+  resultLink: {
+    fontSize: 12,
+    color: '#007AFF',
+    fontWeight: 'bold',
+  },
+  
   inputContainer: {
     padding: 20,
     backgroundColor: '#fff',
