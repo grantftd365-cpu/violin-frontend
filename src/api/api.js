@@ -18,7 +18,7 @@ console.log('API_BASE_URL configured:', API_BASE_URL);
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 120000, // 2 minutes for YouTube download + transcription
+  timeout: 300000, // 5 minutes for YouTube download + AI transcription on free tier
 });
 
 export const testBackendConnection = async () => {

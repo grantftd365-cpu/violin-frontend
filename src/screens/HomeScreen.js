@@ -46,11 +46,19 @@ const HomeScreen = () => {
 
     try {
       // Simulate progress updates for better UX since backend is one big request
+      let elapsedSeconds = 0;
       const progressTimer = setInterval(() => {
+        elapsedSeconds += 10;
         setStatusMessage(prev => {
-            if (prev === 'Downloading audio...') return 'Transcribing to MIDI... (this takes ~30s)';
-            if (prev.startsWith('Transcribing')) return 'Converting to Sheet Music...';
-            return prev;
+          if (elapsedSeconds === 10) return 'Downloading audio from YouTube...';
+          if (elapsedSeconds === 20) return 'Transcribing to MIDI... (this takes ~30s)';
+          if (elapsedSeconds === 30) return 'Converting to Sheet Music...';
+          if (elapsedSeconds === 60) return 'Still working... AI is analyzing the audio (1m)...';
+          if (elapsedSeconds === 90) return 'Almost there... generating sheet music (1m30s)...';
+          if (elapsedSeconds === 120) return 'Processing notes and rhythms (2m)...';
+          if (elapsedSeconds === 150) return 'Finalizing sheet music (2m30s)...';
+          if (elapsedSeconds === 180) return 'Still processing... (3m) - free tier is slow...';
+          return prev;
         });
       }, 10000);
 
@@ -66,12 +74,16 @@ const HomeScreen = () => {
       }
     } catch (error) {
       console.error(error);
-      let errorMessage = 'Failed to generate sheet music. Ensure backend is running.';
-      if (error.response && error.response.data && error.response.data.detail) {
-        errorMessage = `Error: ${error.response.data.detail}`;
+      let errorMessage = 'Failed to generate sheet music.';
+      
+      if (error.code === 'ECONNABORTED') {
+        errorMessage = 'Request timed out after 5 minutes. The backend is taking too long.\n\nPossible causes:\n- Free tier cold start (try again)\n- Long video (try a shorter one)\n- Backend is overloaded';
+      } else if (error.response && error.response.data && error.response.data.detail) {
+        errorMessage = `Backend Error: ${error.response.data.detail}`;
       } else if (error.message) {
         errorMessage = `Error: ${error.message}`;
       }
+      
       Alert.alert('Generation Failed', errorMessage);
       setStatusMessage('Failed');
     } finally {
