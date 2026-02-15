@@ -63,7 +63,9 @@ const SheetMusicViewer = ({ musicXml, isLoading }) => {
           window.onerror = function(msg, url, line) {
             document.getElementById('error-msg').style.display = 'block';
             document.getElementById('error-msg').innerText = 'Error: ' + msg;
-            window.ReactNativeWebView.postMessage(JSON.stringify({type: 'error', message: msg}));
+            if (window.ReactNativeWebView) {
+              window.ReactNativeWebView.postMessage(JSON.stringify({type: 'error', message: msg}));
+            }
           };
 
           try {
@@ -79,14 +81,18 @@ const SheetMusicViewer = ({ musicXml, isLoading }) => {
 
             osmd.load(musicXml).then(function() {
               osmd.render();
-              window.ReactNativeWebView.postMessage(JSON.stringify({type: 'success', message: 'Rendered'}));
+              if (window.ReactNativeWebView) {
+                window.ReactNativeWebView.postMessage(JSON.stringify({type: 'success', message: 'Rendered'}));
+              }
             }, function(err) {
               throw err;
             });
           } catch (e) {
             document.getElementById('error-msg').style.display = 'block';
             document.getElementById('error-msg').innerText = 'Render Error: ' + e.message;
-            window.ReactNativeWebView.postMessage(JSON.stringify({type: 'error', message: e.message}));
+            if (window.ReactNativeWebView) {
+              window.ReactNativeWebView.postMessage(JSON.stringify({type: 'error', message: e.message}));
+            }
           }
         </script>
       </body>
