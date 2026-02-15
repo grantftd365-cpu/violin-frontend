@@ -210,30 +210,6 @@ const HomeScreen = () => {
     }
   };
 
-  const downloadMusicXML = () => {
-    if (!musicXml) return;
-    
-    // Create filename based on timestamp
-    const filename = `violin-sheet-${Date.now()}.musicxml`;
-    
-    // Create blob from XML string
-    const blob = new Blob([musicXml], { type: 'application/vnd.recordare.musicxml+xml' });
-    const url = URL.createObjectURL(blob);
-    
-    // Create temporary link and trigger download
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    // Cleanup
-    URL.revokeObjectURL(url);
-    
-    alert('Success: MusicXML file downloaded!');
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="auto" />
