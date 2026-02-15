@@ -36,7 +36,7 @@ const HomeScreen = () => {
 
   const handleTranscribe = async () => {
     if (!url) {
-      Alert.alert('Error', 'Please enter a YouTube URL');
+      Alert.alert('Error', 'Please enter a YouTube or Bilibili URL');
       return;
     }
 
@@ -50,7 +50,7 @@ const HomeScreen = () => {
       const progressTimer = setInterval(() => {
         elapsedSeconds += 10;
         setStatusMessage(prev => {
-          if (elapsedSeconds === 10) return 'Downloading audio from YouTube...';
+          if (elapsedSeconds === 10) return 'Downloading audio from YouTube/Bilibili...';
           if (elapsedSeconds === 20) return 'Transcribing to MIDI... (this takes ~30s)';
           if (elapsedSeconds === 30) return 'Converting to Sheet Music...';
           if (elapsedSeconds === 60) return 'Still working... AI is analyzing the audio (1m)...';
@@ -97,13 +97,13 @@ const HomeScreen = () => {
       
       <View style={styles.header}>
         <Text style={styles.title}>Violin Sheet Gen</Text>
-        <Text style={styles.subtitle}>YouTube to Sheet Music</Text>
+        <Text style={styles.subtitle}>YouTube / Bilibili to Sheet Music</Text>
       </View>
 
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
-          placeholder="Paste YouTube Link"
+          placeholder="Paste YouTube or Bilibili Link"
           value={url}
           onChangeText={setUrl}
           autoCapitalize="none"
