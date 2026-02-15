@@ -9,13 +9,33 @@ const DEV_API_URL = Platform.select({
   default: 'http://localhost:8000',
 });
 
-// Use environment variable in production, fallback to dev URL
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || DEV_API_URL;
+// Use environment variable in production, fallback to hardcoded Render URL, then dev URL
+// CRITICAL: We hardcode the Render URL here to ensure it works even if env vars fail
+const PROD_API_URL = 'https://violin-backend.onrender.com';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || PROD_API_URL;
+
+console.log('API_BASE_URL configured:', API_BASE_URL);
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000, // Long timeout for transcription
+  timeout: 120000, // 2 minutes for YouTube download + transcription
 });
+
+export const testBackendConnection = async () => {
+  try {
+    console.log('Testing backend connection to:', API_BASE_URL);
+    const response = await api.get('/');
+    console.log('Backend health check passed:', response.data);
+    return { success: true, url: API_BASE_URL };
+  } catch (error) {
+    console.error('Backend connection test failed:', error);
+    return { 
+      success: false, 
+      error: error.message,
+      url: API_BASE_URL
+    };
+  }
+};
 
 export const searchImslp = async (keyword) => {
   try {
@@ -39,6 +59,7 @@ export const browseViolin = async () => {
 
 export const transcribeYoutube = async (url) => {
   try {
+    console.log(`Requesting transcription for: ${url} at ${API_BASE_URL}/transcribe/youtube`);
     const response = await api.post('/transcribe/youtube', { url });
     return response.data;
   } catch (error) {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   StyleSheet, 
   Text, 
@@ -11,7 +11,7 @@ import {
   Alert
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { transcribeYoutube } from '../api/api';
+import { transcribeYoutube, testBackendConnection } from '../api/api';
 import SheetMusicViewer from '../components/SheetMusicViewer';
 
 const HomeScreen = () => {
@@ -19,6 +19,20 @@ const HomeScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [musicXml, setMusicXml] = useState(null);
   const [statusMessage, setStatusMessage] = useState('');
+
+  useEffect(() => {
+    // Check backend connection on load
+    const checkConnection = async () => {
+      const result = await testBackendConnection();
+      if (!result.success) {
+        Alert.alert(
+          'Connection Error',
+          `Cannot reach backend at ${result.url}. \n\nError: ${result.error}\n\nPlease check your VPN connection.`
+        );
+      }
+    };
+    checkConnection();
+  }, []);
 
   const handleTranscribe = async () => {
     if (!url) {
