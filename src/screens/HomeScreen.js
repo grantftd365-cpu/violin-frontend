@@ -22,14 +22,16 @@ const HomeScreen = () => {
   const [statusMessage, setStatusMessage] = useState('');
 
   useEffect(() => {
+    // Test that alerts work
+    setTimeout(() => {
+      alert('App Loaded - Alerts Working (v2.2)');
+    }, 1000);
+
     // Check backend connection on load
     const checkConnection = async () => {
       const result = await testBackendConnection();
       if (!result.success) {
-        Alert.alert(
-          'Connection Error',
-          `Cannot reach backend at ${result.url}. \n\nError: ${result.error}\n\nPlease check your VPN connection.`
-        );
+        alert(`Connection Error: Cannot reach backend at ${result.url}. \n\nError: ${result.error}\n\nPlease check your VPN connection.`);
       }
     };
     checkConnection();
@@ -59,26 +61,26 @@ const HomeScreen = () => {
 
   const handleFileUpload = async (event) => {
     // STEP 1: File selection
-    Alert.alert('Debug: Step 1/6', 'File input triggered!');
+    alert('Debug: Step 1/6: File input triggered!');
     
     const file = event.target.files[0];
     if (!file) {
-      Alert.alert('Debug: Error', 'No file selected');
+      alert('Debug: Error: No file selected');
       return;
     }
     
     // STEP 2: Validation
-    Alert.alert('Debug: Step 2/6', `Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+    alert(`Debug: Step 2/6: Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
 
     // Validate file size (max 100MB for video)
     const maxSize = 100 * 1024 * 1024; // 100MB
     if (file.size > maxSize) {
-      Alert.alert('Error', 'File too large. Maximum size is 100MB.');
+      alert(`Error: File too large. Maximum size is 100MB.`);
       return;
     }
     
     // STEP 3: State update
-    Alert.alert('Debug: Step 3/6', 'Starting upload process...');
+    alert('Debug: Step 3/6: Starting upload process...');
     setIsLoading(true);
     setUploadProgress(0);
     setStatusMessage(`Uploading ${file.name}...`);
@@ -88,8 +90,8 @@ const HomeScreen = () => {
     if (window.progressTimer) clearInterval(window.progressTimer);
     
     try {
-      let elapsedSeconds = 0;
-      // Removed initial timer start here - moved to upload callback
+      // STEP 4: Call API
+      alert('Debug: Step 4/6: Sending file to backend...');
       
       const result = await uploadAudio(file, (progress) => {
         setUploadProgress(progress);
@@ -122,23 +124,20 @@ const HomeScreen = () => {
       if (window.progressTimer) clearInterval(window.progressTimer);
       window.progressTimer = null;
       
-      Alert.alert(
-        'Debug: Step 5/6', 
-        `Response received!\nKeys: ${result ? Object.keys(result).join(', ') : 'null'}\nXML Length: ${result?.musicxml?.length}`
-      );
+      alert(`Debug: Step 5/6: Response received!\nKeys: ${result ? Object.keys(result).join(', ') : 'null'}\nXML Length: ${result?.musicxml?.length}`);
       
       setStatusMessage('Done!');
       
       if (result && result.musicxml && typeof result.musicxml === 'string' && result.musicxml.length > 0) {
         // STEP 6: Setting State
-        Alert.alert('Debug: Step 6/6', 'Setting sheet music state...');
+        alert('Debug: Step 6/6: Setting sheet music state...');
         setMusicXml(result.musicxml);
       } else {
-        Alert.alert('Error', 'No sheet music generated from uploaded file');
+        alert('Error: No sheet music generated from uploaded file');
       }
     } catch (error) {
       console.error(error);
-      Alert.alert('Debug: Catch Error', `Code: ${error.code}\nMessage: ${error.message}\nResponse: ${JSON.stringify(error.response?.data)}`);
+      alert(`Debug: Catch Error\nCode: ${error.code}\nMessage: ${error.message}\nResponse: ${JSON.stringify(error.response?.data)}`);
       
       let errorMessage = 'Failed to process uploaded audio.';
       if (error.code === 'ECONNABORTED') {
@@ -149,7 +148,7 @@ const HomeScreen = () => {
         errorMessage = `Error: ${error.message}`;
       }
       
-      Alert.alert('Upload Failed', errorMessage);
+      alert(`Upload Failed: ${errorMessage}`);
       setStatusMessage('Failed');
     } finally {
       setIsLoading(false);
@@ -190,39 +189,49 @@ const HomeScreen = () => {
       const result = await transcribeYoutube(url);
       
       // DEBUG: Alert exactly what we received to diagnose missing data
-      Alert.alert(
-        'Debug: Backend Response', 
-        `Keys: ${result ? Object.keys(result).join(', ') : 'null'}\n` +
-        `musicxml length: ${result && result.musicxml ? result.musicxml.length : '0/undefined'}\n` +
-        `Preview: ${JSON.stringify(result).slice(0, 100)}`
+      alert(
+        `Debug: Backend Response\nKeys: ${result ? Object.keys(result).join(', ') : 'null'}\nmusicxml length: ${result && result.musicxml ? result.musicxml.length : '0/undefined'}\nPreview: ${JSON.stringify(result).slice(0, 100)}`
       );
 
       clearInterval(progressTimer);
-      if (window.progressTimer) clearInterval(window.progressTimer);
       setStatusMessage('Done!');
       
       if (result && result.musicxml && typeof result.musicxml === 'string' && result.musicxml.length > 0) {
         setMusicXml(result.musicxml);
       } else {
-        Alert.alert('Error', 'No sheet music generated. Backend returned empty result.');
+        alert('Error: No sheet music generated. Backend returned empty result.');
       }
     } catch (error) {
       console.error(error);
-      let errorMessage = 'Failed to generate sheet music.';
-      
-      if (error.code === 'ECONNABORTED') {
-        errorMessage = 'Request timed out after 5 minutes. The backend is taking too long.\n\nPossible causes:\n- Free tier cold start (try again)\n- Long video (try a shorter one)\n- Backend is overloaded';
-      } else if (error.response && error.response.data && error.response.data.detail) {
-        errorMessage = `Backend Error: ${error.response.data.detail}`;
-      } else if (error.message) {
-        errorMessage = `Error: ${error.message}`;
-      }
-      
-      Alert.alert('Generation Failed', errorMessage);
+      alert(`Error: ${error.message || 'Unknown error occurred'}`);
       setStatusMessage('Failed');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const downloadMusicXML = () => {
+    if (!musicXml) return;
+    
+    // Create filename based on timestamp
+    const filename = `violin-sheet-${Date.now()}.musicxml`;
+    
+    // Create blob from XML string
+    const blob = new Blob([musicXml], { type: 'application/vnd.recordare.musicxml+xml' });
+    const url = URL.createObjectURL(blob);
+    
+    // Create temporary link and trigger download
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Cleanup
+    URL.revokeObjectURL(url);
+    
+    alert('Success: MusicXML file downloaded!');
   };
 
   return (
@@ -230,7 +239,7 @@ const HomeScreen = () => {
       <StatusBar style="auto" />
       
       <View style={styles.header}>
-        <Text style={styles.title}>Violin Sheet Gen (v2.1)</Text>
+        <Text style={styles.title}>Violin Sheet Gen (v2.2)</Text>
         <Text style={styles.subtitle}>YouTube / Bilibili to Sheet Music</Text>
       </View>
 
@@ -263,7 +272,15 @@ const HomeScreen = () => {
             type="file"
             id="audio-upload"
             accept=".mp3,.wav,.m4a,.ogg,.flac,.aac,.wma,.mp4,.mov,.avi,.webm,.mkv,audio/*,video/*"
-            style={{ display: 'none' }}
+            style={{ 
+              opacity: 0, 
+              position: 'absolute', 
+              height: 1, 
+              width: 1,
+              top: -1000,
+              left: -1000,
+              pointerEvents: 'none'
+            }}
             onChange={handleFileUpload}
           />
         ) : null}
@@ -272,9 +289,10 @@ const HomeScreen = () => {
           style={[styles.uploadButton, isLoading && styles.buttonDisabled]}
           onPress={() => {
             if (Platform.OS === 'web') {
+              alert('Button pressed - opening file picker...');
               document.getElementById('audio-upload').click();
             } else {
-              Alert.alert('Not Supported', 'File upload not supported on native yet');
+              alert('Not Supported: File upload not supported on native yet');
             }
           }}
           disabled={isLoading}
@@ -317,7 +335,7 @@ const HomeScreen = () => {
                   if (typeof window !== 'undefined' && window.print) {
                     window.print();
                   } else {
-                    Alert.alert('Print', 'Printing not available on this device');
+                    alert('Print: Printing not available on this device');
                   }
                 }}
               >
