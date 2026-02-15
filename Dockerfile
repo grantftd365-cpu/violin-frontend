@@ -18,6 +18,11 @@ RUN npm run build
 # Stage 2: Serve with Nginx
 FROM nginx:alpine
 
+# Download OpenSheetMusicDisplay library locally (for China compatibility)
+# This bypasses CDN blocking issues
+ADD https://cdnjs.cloudflare.com/ajax/libs/opensheetmusicdisplay/1.8.8/opensheetmusicdisplay.min.js \
+    /usr/share/nginx/html/opensheetmusicdisplay.min.js
+
 # Copy custom nginx config
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 

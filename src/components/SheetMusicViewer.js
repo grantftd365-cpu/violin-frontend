@@ -48,7 +48,7 @@ const SheetMusicViewer = ({ musicXml, isLoading }) => {
     <html>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/opensheetmusicdisplay/1.8.8/opensheetmusicdisplay.min.js"></script>
+        <script src="/opensheetmusicdisplay.min.js"></script>
         <style>
           body { margin: 0; padding: 0; background-color: #fff; height: 100vh; display: flex; flex-direction: column; }
           #osmdCanvas { flex: 1; width: 100%; overflow-y: auto; }
