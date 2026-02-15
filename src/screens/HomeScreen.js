@@ -60,10 +60,10 @@ const HomeScreen = () => {
     const file = event.target.files[0];
     if (!file) return;
     
-    // Validate file size (max 50MB)
-    const maxSize = 50 * 1024 * 1024; // 50MB
+    // Validate file size (max 100MB for video)
+    const maxSize = 100 * 1024 * 1024; // 100MB
     if (file.size > maxSize) {
-      Alert.alert('Error', 'File too large. Maximum size is 50MB.');
+      Alert.alert('Error', 'File too large. Maximum size is 100MB.');
       return;
     }
     
@@ -227,7 +227,7 @@ const HomeScreen = () => {
           <input
             type="file"
             id="audio-upload"
-            accept=".mp3,.wav,.m4a,.ogg,.flac,.aac,.wma,audio/*"
+            accept=".mp3,.wav,.m4a,.ogg,.flac,.aac,.wma,.mp4,.mov,.avi,.webm,.mkv,audio/*,video/*"
             style={{ display: 'none' }}
             onChange={handleFileUpload}
           />
@@ -245,11 +245,11 @@ const HomeScreen = () => {
           disabled={isLoading}
         >
           <Text style={styles.uploadButtonText}>
-            {isLoading ? 'Uploading...' : 'Upload Audio File'}
+            {isLoading ? 'Uploading...' : 'Upload Audio/Video File'}
           </Text>
         </TouchableOpacity>
         <Text style={styles.uploadHint}>
-          Supports: MP3, WAV, M4A, OGG, FLAC, AAC
+          Supports: MP3, MP4, WAV, MOV, M4A, AVI, OGG... (Max 100MB)
         </Text>
       </View>
 
