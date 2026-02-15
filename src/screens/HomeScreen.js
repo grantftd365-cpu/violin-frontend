@@ -234,7 +234,8 @@ const HomeScreen = () => {
     // filetype:pdf -> Only PDF files
     // violin -> Ensure it's for violin
     const query = `site:imslp.org filetype:pdf ${searchKeyword} violin`;
-    const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+    // Use cn.bing.com because Google is blocked in China
+    const searchUrl = `https://cn.bing.com/search?q=${encodeURIComponent(query)}`;
     
     if (Platform.OS === 'web') {
       window.open(searchUrl, '_blank');
@@ -248,7 +249,7 @@ const HomeScreen = () => {
       <StatusBar style="auto" />
       
       <View style={styles.header}>
-        <Text style={styles.title}>Violin Sheet Gen (v2.8)</Text>
+        <Text style={styles.title}>Violin Sheet Gen (v2.9)</Text>
         <Text style={styles.subtitle}>YouTube / Bilibili to Sheet Music</Text>
       </View>
 
@@ -268,7 +269,7 @@ const HomeScreen = () => {
             onPress={handleImslpSearch}
           >
             <Text style={styles.searchButtonText}>
-              Search Google
+              Search Bing
             </Text>
           </TouchableOpacity>
         </View>
