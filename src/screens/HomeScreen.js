@@ -84,16 +84,44 @@ const HomeScreen = () => {
     setStatusMessage(`Uploading ${file.name}...`);
     setMusicXml(null);
     
+    // Clear any existing timer
+    if (window.progressTimer) clearInterval(window.progressTimer);
+    
     try {
-      // STEP 4: Call API
-      Alert.alert('Debug: Step 4/6', 'Sending file to backend...');
+      let elapsedSeconds = 0;
+      // Removed initial timer start here - moved to upload callback
       
       const result = await uploadAudio(file, (progress) => {
         setUploadProgress(progress);
-        setStatusMessage(`Uploading: ${progress}%`);
+        if (progress < 100) {
+          setStatusMessage(`Uploading: ${progress}%`);
+        } else {
+          setStatusMessage('Upload complete! Processing on server...');
+          
+          // Start the processing timer only AFTER upload is done
+          if (!window.progressTimer) {
+            let elapsedSeconds = 0;
+            window.progressTimer = setInterval(() => {
+              elapsedSeconds += 5;
+              setStatusMessage(prev => {
+                if (elapsedSeconds <= 5) return 'Processing: Analyzing audio structure...';
+                if (elapsedSeconds === 10) return 'Processing: Transcribing to MIDI (AI model running)...';
+                if (elapsedSeconds === 20) return 'Processing: Converting MIDI to Sheet Music...';
+                if (elapsedSeconds === 30) return 'Processing: Formatting notation...';
+                if (elapsedSeconds === 45) return 'Still working... (Large files take longer)';
+                if (elapsedSeconds === 60) return 'Almost done... (1m elapsed)';
+                if (elapsedSeconds >= 90) return `Still processing (${Math.floor(elapsedSeconds)}s)...`;
+                return prev;
+              });
+            }, 5000);
+          }
+        }
       });
       
       // STEP 5: Response received
+      if (window.progressTimer) clearInterval(window.progressTimer);
+      window.progressTimer = null;
+      
       Alert.alert(
         'Debug: Step 5/6', 
         `Response received!\nKeys: ${result ? Object.keys(result).join(', ') : 'null'}\nXML Length: ${result?.musicxml?.length}`
@@ -475,11 +503,4 @@ const styles = StyleSheet.create({
     backgroundColor: '#007AFF',
   },
   actionButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
-    textAlign: 'center',
-  }
-});
-
-export default HomeScreen;
+    color:
