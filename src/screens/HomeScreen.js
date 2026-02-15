@@ -52,7 +52,13 @@ const HomeScreen = () => {
       }
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'Failed to generate sheet music. Ensure backend is running.');
+      let errorMessage = 'Failed to generate sheet music. Ensure backend is running.';
+      if (error.response && error.response.data && error.response.data.detail) {
+        errorMessage = `Error: ${error.response.data.detail}`;
+      } else if (error.message) {
+        errorMessage = `Error: ${error.message}`;
+      }
+      Alert.alert('Generation Failed', errorMessage);
       setStatusMessage('Failed');
     } finally {
       setIsLoading(false);
