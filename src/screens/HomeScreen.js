@@ -124,6 +124,16 @@ const HomeScreen = () => {
       if (window.progressTimer) clearInterval(window.progressTimer);
       window.progressTimer = null;
       
+      // Check for AcoustID recognition
+      if (result.recognized && result.metadata) {
+        alert(
+          `🎵 Song Recognized!\n\n` +
+          `Title: ${result.metadata.title}\n` +
+          `Artist: ${result.metadata.artist}\n\n` +
+          `(Generating AI transcription for you now...)`
+        );
+      }
+
       alert(`Debug: Step 5/6: Response received!\nKeys: ${result ? Object.keys(result).join(', ') : 'null'}\nXML Length: ${result?.musicxml?.length}`);
       
       setStatusMessage('Done!');
@@ -215,7 +225,7 @@ const HomeScreen = () => {
       <StatusBar style="auto" />
       
       <View style={styles.header}>
-        <Text style={styles.title}>Violin Sheet Gen (v2.5)</Text>
+        <Text style={styles.title}>Violin Sheet Gen (v2.6)</Text>
         <Text style={styles.subtitle}>YouTube / Bilibili to Sheet Music</Text>
       </View>
 
