@@ -601,3 +601,337 @@ const styles = StyleSheet.create({
 });
 
 export default HomeScreen;
+  const handleNativePick = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['audio/*', 'video/*'],
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled) return;
+      if (!result.assets || result.assets.length === 0) {
+        Alert.alert('Error', t('errorNoSelection'));
+        return;
+      }
+
+      const file = result.assets[0];
+      await processFile(file);
+    } catch (err) {
+      Alert.alert('Error', 'Error picking file: ' + err.message);
+    }
+  };
+
+  const handleFileUpload = async (event, isNative = false) => {
+    const file = isNative ? event.target.files[0] : event.target.files[0];
+    if (!file) return;
+    await processFile(file);
+    if (!isNative && event.target) event.target.value = '';
+  };
+
+  const processFile = async (file) => {
+    const size = file.size || 0;
+    const maxSize = 100 * 1024 * 1024;
+    if (size > maxSize) {
+      Alert.alert('Error', t('errorLargeFile'));
+      return;
+    }
+
+    setIsLoading(true);
+    setUploadProgress(0);
+    setStatusMessage(t('uploading', 0));
+    setMusicXml(null);
+    setRecognizedSong(null);
+
+    try {
+      const result = await uploadAudio(file, (progress) => {
+        setUploadProgress(progress);
+        setStatusMessage(t('uploading', progress));
+      });
+
+      if (result.recognized && result.metadata) {
+        const title = result.metadata.title;
+        const artist = result.metadata.artist;
+        const query = `${title} ${artist} violin sheet music 小提琴谱`;
+
+        setRecognizedSong({ title, artist, query });
+        setSearchKeyword(`${title} ${artist}`);
+      }
+
+      setStatusMessage('Done!');
+
+      if (result?.musicxml && result.musicxml.length > 0) {
+        setMusicXml(result.musicxml);
+      }
+    } catch (error) {
+      Alert.alert('Error', error.message || 'Upload failed');
+      setStatusMessage('Failed');
+    } finally {
+      setIsLoading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  const handleTranscribe = async () => {
+    if (!url) {
+      Alert.alert('Error', 'Please enter a URL');
+      return;
+    }
+
+    setIsLoading(true);
+    setStatusMessage('Downloading...');
+
+    try {
+      const result = await transcribeYoutube(url);
+      if (result?.musicxml) {
+        setMusicXml(result.musicxml);
+      }
+    } catch (error) {
+      Alert.alert('Error', error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!searchKeyword.trim()) {
+      Alert.alert('Error', 'Please enter search term');
+      return;
+    }
+
+    const query = `${searchKeyword} violin sheet music 小提琴谱`;
+    const searchUrl = `https://cn.bing.com/search?q=${encodeURIComponent(query)}`;
+
+    try {
+      const supported = await Linking.canOpenURL(searchUrl);
+      if (supported) {
+        await Linking.openURL(searchUrl);
+      } else {
+        Alert.alert('Error', 'Cannot open browser');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Cannot open browser');
+    }
+  };
+
+  const downloadMusicXML = () => {
+    if (!musicXml) return;
+    if (Platform.OS === 'web') {
+      const filename = `violin-sheet-${Date.now()}.musicxml`;
+      const blob = new Blob([musicXml], { type: 'application/vnd.recordare.musicxml+xml' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } else {
+      Alert.alert('Info', 'Use Print PDF button');
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar style="light" backgroundColor="#1A237E" />
+      
+      <View style={styles.header}>
+        <Text style={styles.appIcon}>🎻</Text>
+        <Text style={styles.appTitle}>{t('title')}</Text>
+        <Text style={styles.appSubtitle}>{t('subtitle')}</Text>
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>✨ {t('badge')}</Text>
+        </View>
+        
+        <View style={styles.langToggle}>
+          <TouchableOpacity 
+            style={[styles.langBtn, lang === 'en' && styles.langActive]}
+            onPress={() => setLang('en')}
+          >
+            <Text style={lang === 'en' ? styles.langTextActive : styles.langText}>EN</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.langBtn, lang === 'zh' && styles.langActive]}
+            onPress={() => setLang('zh')}
+          >
+            <Text style={lang === 'zh' ? styles.langTextActive : styles.langText}>中文</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {recognizedSong && (
+          <View style={styles.recognitionCard}>
+            <Text style={styles.recognitionTitle}>{t('recognized')}</Text>
+            <Text style={styles.songTitle}>{recognizedSong.title}</Text>
+            <Text style={styles.songArtist}>{t('by')} {recognizedSong.artist}</Text>
+            <TouchableOpacity 
+              style={styles.searchSheetBtn}
+              onPress={() => {
+                const query = `${recognizedSong.title} ${recognizedSong.artist} violin sheet music 小提琴谱`;
+                Linking.openURL(`https://cn.bing.com/search?q=${encodeURIComponent(query)}`);
+              }}
+            >
+              <Text style={styles.searchSheetBtnText}>{t('findSheetMusic')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setRecognizedSong(null)}>
+              <Text style={styles.dismissText}>{t('dismiss')}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <View style={styles.uploadZone}>
+          <TouchableOpacity 
+            style={styles.uploadBtn}
+            onPress={() => {
+              if (Platform.OS === 'web') {
+                document.getElementById('audio-upload').click();
+              } else {
+                handleNativePick();
+              }
+            }}
+          >
+            <Text style={styles.uploadIcon}>📁</Text>
+            <Text style={styles.uploadTitle}>{t('uploadTitle')}</Text>
+            <Text style={styles.uploadSubtitle}>{t('uploadSubtitle')}</Text>
+            <View style={styles.formatsRow}>
+              {t('uploadFormats').map((f, i) => (
+                <Text key={i} style={styles.formatBadge}>{f}</Text>
+              ))}
+            </View>
+          </TouchableOpacity>
+          
+          {Platform.OS === 'web' && (
+            <input
+              type="file"
+              id="audio-upload"
+              accept="audio/*,video/*"
+              style={{ display: 'none' }}
+              onChange={handleFileUpload}
+            />
+          )}
+        </View>
+
+        <View style={styles.searchSection}>
+          <Text style={styles.searchLabel}>{t('searchLabel')}</Text>
+          <View style={styles.searchRow}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder={t('searchPlaceholder')}
+              value={searchKeyword}
+              onChangeText={setSearchKeyword}
+              placeholderTextColor="#999"
+            />
+            <TouchableOpacity style={styles.searchBtn} onPress={handleSearch}>
+              <Text style={styles.searchBtnText}>{t('searchButton')}</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.searchHint}>{t('searchHint')}</Text>
+        </View>
+
+        <View style={styles.linkSection}>
+          <TextInput
+            style={styles.linkInput}
+            placeholder={t('linkPlaceholder')}
+            value={url}
+            onChangeText={setUrl}
+          />
+          <TouchableOpacity 
+            style={[styles.generateBtn, isLoading && styles.disabledBtn]}
+            onPress={handleTranscribe}
+            disabled={isLoading}
+          >
+            <Text style={styles.generateBtnText}>{isLoading ? '...' : t('generateButton')}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {isLoading && (
+          <View style={styles.loadingCard}>
+            <ActivityIndicator size="large" color="#FFD700" />
+            <Text style={styles.loadingText}>{statusMessage}</Text>
+            {uploadProgress > 0 && (
+              <>
+                <View style={styles.progressTrack}>
+                  <View style={[styles.progressFill, { width: `${uploadProgress}%` }]} />
+                </View>
+                <Text style={styles.progressText}>{uploadProgress}%</Text>
+              </>
+            )}
+          </View>
+        )}
+
+        {musicXml && (
+          <View style={styles.resultCard}>
+            <View style={styles.resultHeader}>
+              <Text style={styles.resultTitle}>{t('generatedTitle')}</Text>
+              <View style={styles.qualityBadge}>
+                <Text style={styles.qualityText}>{t('aiTranscribed')}</Text>
+              </View>
+            </View>
+            <SheetMusicViewer musicXml={musicXml} />
+            <View style={styles.actionRow}>
+              <TouchableOpacity style={styles.downloadBtn} onPress={downloadMusicXML}>
+                <Text style={styles.downloadBtnText}>{t('download')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.printBtn} onPress={() => window.print()}>
+                <Text style={styles.printBtnText}>{t('print')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {!musicXml && !isLoading && (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyIcon}>🎼</Text>
+            <Text style={styles.emptyTitle}>{t('emptyTitle')}</Text>
+            <Text style={styles.emptyText}>{t('emptyText')}</Text>
+          </View>
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#0D47A1' },
+  header: {
+    backgroundColor: '#1A237E',
+    paddingTop: 50,
+    paddingBottom: 30,
+    alignItems: 'center',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  appIcon: { fontSize: 50, marginBottom: 10 },
+  appTitle: { fontSize: 28, fontWeight: 'bold', color: '#FFF' },
+  appSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.8)', marginTop: 5 },
+  badge: {
+    backgroundColor: '#FFD700',
+    paddingHorizontal: 15,
+    paddingVertical: 5,
+    borderRadius: 20,
+    marginTop: 15,
+  },
+  badgeText: { color: '#1A237E', fontWeight: 'bold', fontSize: 12 },
+  langToggle: {
+    position: 'absolute',
+    top: 10,
+    right: 15,
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 20,
+    padding: 4,
+  },
+  langBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
+  langActive: { backgroundColor: '#FFD700' },
+  langText: { color: 'rgba(255,255,255,0.7)', fontSize: 12 },
+  langTextActive: { color: '#1A237E', fontWeight: 'bold', fontSize: 12 },
+  content: { flex: 1, padding: 15 },
+  recognitionCard: {
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 15,
+    alignItems: 'center',
+  },
+  recognitionTit
