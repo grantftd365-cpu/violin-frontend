@@ -149,7 +149,15 @@ const HomeScreen = () => {
         );
       }
 
-      alert(`Debug: Step 5/6: Response received!\nKeys: ${result ? Object.keys(result).join(', ') : 'null'}\nXML Length: ${result?.musicxml?.length}`);
+      alert(
+        `Debug: Step 5/6: Response received!\n\n` +
+        `Recognized: ${result.recognized ? 'YES' : 'NO'}\n` +
+        `Title: ${result.metadata?.title || 'N/A'}\n` +
+        `Artist: ${result.metadata?.artist || 'N/A'}\n` +
+        `Source: ${result.source || 'N/A'}\n` +
+        `XML Length: ${result?.musicxml?.length || 0}\n` +
+        `All Keys: ${result ? Object.keys(result).join(', ') : 'null'}`
+      );
       
       setStatusMessage('Done!');
       
@@ -260,7 +268,7 @@ const HomeScreen = () => {
       <StatusBar style="auto" />
       
       <View style={styles.header}>
-        <Text style={styles.title}>Violin Sheet Gen (v3.2)</Text>
+        <Text style={styles.title}>Violin Sheet Gen (v3.3)</Text>
         <Text style={styles.subtitle}>YouTube / Bilibili to Sheet Music</Text>
       </View>
 
