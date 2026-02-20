@@ -127,14 +127,30 @@ const HomeScreen = () => {
       if (window.progressTimer) clearInterval(window.progressTimer);
       window.progressTimer = null;
       
-      // Check for AcoustID recognition
+      // Check for ACRCloud recognition
       if (result.recognized && result.metadata) {
-        alert(
-          `🎵 Song Recognized!\n\n` +
-          `Title: ${result.metadata.title}\n` +
-          `Artist: ${result.metadata.artist}\n\n` +
-          `(Generating AI transcription for you now...)`
-        );
+        const title = result.metadata.title;
+        const artist = result.metadata.artist;
+        const searchQuery = `${title} ${artist} violin sheet music`;
+        
+        // Pre-fill the search box for convenience
+        setSearchKeyword(searchQuery);
+        
+        if (Platform.OS === 'web') {
+          // On Web, use window.confirm to offer immediate search
+          const userWantsSearch = window.confirm(
+            `🎵 Recognized: "${title}"\nby ${artist}\n\n` +
+            `Do you want to search Bing for the standard sheet music?`
+          );
+          
+          if (userWantsSearch) {
+            const bingUrl = `https://cn.bing.com/search?q=${encodeURIComponent(searchQuery)}`;
+            window.open(bingUrl, '_blank');
+          }
+        } else {
+          // Native fallback
+          alert(`🎵 Recognized: ${title} by ${artist}\nSearch term updated.`);
+        }
       }
 
       alert(`Debug: Step 5/6: Response received!\nKeys: ${result ? Object.keys(result).join(', ') : 'null'}\nXML Length: ${result?.musicxml?.length}`);
@@ -248,7 +264,7 @@ const HomeScreen = () => {
       <StatusBar style="auto" />
       
       <View style={styles.header}>
-        <Text style={styles.title}>Violin Sheet Gen (v3.0)</Text>
+        <Text style={styles.title}>Violin Sheet Gen (v3.1)</Text>
         <Text style={styles.subtitle}>YouTube / Bilibili to Sheet Music</Text>
       </View>
 
