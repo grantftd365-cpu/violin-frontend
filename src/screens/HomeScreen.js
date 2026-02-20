@@ -11,9 +11,9 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
-  StatusBar
+  StatusBar,
+  Linking
 } from 'react-native';
-import * as DocumentPicker from 'expo-document-picker';
 import { transcribeYoutube, testBackendConnection, uploadAudio } from '../api/api';
 import SheetMusicViewer from '../components/SheetMusicViewer';
 
@@ -194,7 +194,7 @@ const HomeScreen = () => {
     }
   };
 
-  const handleImslpSearch = () => {
+  const handleImslpSearch = async () => {
     if (!searchKeyword.trim()) {
       alert(t('searchPlaceholder'));
       return;
@@ -202,10 +202,15 @@ const HomeScreen = () => {
     const query = `${searchKeyword} violin sheet music 小提琴谱`;
     const searchUrl = `https://cn.bing.com/search?q=${encodeURIComponent(query)}`;
     
-    if (Platform.OS === 'web') {
-      window.open(searchUrl, '_blank');
-    } else {
-      alert(`Search URL: ${searchUrl}`);
+    try {
+      const supported = await Linking.canOpenURL(searchUrl);
+      if (supported) {
+        await Linking.openURL(searchUrl);
+      } else {
+        alert(`Cannot open URL: ${searchUrl}`);
+      }
+    } catch (err) {
+      alert('Error opening browser: ' + err.message);
     }
   };
 
@@ -329,9 +334,18 @@ const HomeScreen = () => {
             </View>
             <TouchableOpacity 
               style={styles.primaryAction}
-              onPress={() => {
+              onPress={async () => {
                 const bingUrl = `https://cn.bing.com/search?q=${encodeURIComponent(recognizedSong.query)}`;
-                window.open(bingUrl, '_blank');
+                try {
+                  const supported = await Linking.canOpenURL(bingUrl);
+                  if (supported) {
+                    await Linking.openURL(bingUrl);
+                  } else {
+                    alert(`Cannot open URL: ${bingUrl}`);
+                  }
+                } catch (err) {
+                  alert('Error opening browser: ' + err.message);
+                }
               }}
             >
               <Text style={styles.primaryActionText}>{t('findSheetMusic')}</Text>
