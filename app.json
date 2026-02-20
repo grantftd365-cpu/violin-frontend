@@ -33,6 +33,12 @@
         "backgroundColor": "#ffffff"
       }
     },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
+    },
     "extra": {
       "eas": {
         "projectId": "violin-sheet-gen"
