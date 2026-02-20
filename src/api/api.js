@@ -81,7 +81,17 @@ export const uploadAudio = async (file, onProgress) => {
     console.log(`Uploading audio file: ${file.name} (${file.size} bytes)`);
     
     const formData = new FormData();
-    formData.append('file', file);
+    
+    if (Platform.OS === 'web') {
+        formData.append('file', file);
+    } else {
+        // Native FormData requires { uri, name, type }
+        formData.append('file', {
+            uri: file.uri,
+            name: file.name || 'upload.mp3',
+            type: file.mimeType || 'audio/mp3'
+        });
+    }
     
     const response = await api.post('/transcribe/upload', formData, {
       headers: {

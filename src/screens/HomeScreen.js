@@ -13,6 +13,7 @@ import {
   ScrollView,
   StatusBar
 } from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
 import { transcribeYoutube, testBackendConnection, uploadAudio } from '../api/api';
 import SheetMusicViewer from '../components/SheetMusicViewer';
 
@@ -48,7 +49,7 @@ const TEXT = {
     language: "Language",
   },
   zh: {
-    title: "小提琴大师",
+    title: "AI谱",
     subtitle: "AI 智能乐谱生成器",
     badge: "✨ 智能听歌识曲",
     uploadTitle: "上传音频或视频",
@@ -104,10 +105,34 @@ const HomeScreen = () => {
   }, []);
 
   const handleFileUpload = async (event) => {
+    // WEB ONLY HANDLER
     const file = event.target.files[0];
     if (!file) return;
-    
+    await processFile(file);
+    event.target.value = '';
+  };
+
+  const handleNativePick = async () => {
+    // NATIVE ONLY HANDLER
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['audio/*', 'video/*'],
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled) return;
+
+      const file = result.assets[0];
+      await processFile(file);
+    } catch (err) {
+      alert('Error picking file: ' + err.message);
+    }
+  };
+
+  const processFile = async (file) => {
+    // SHARED UPLOAD LOGIC
     const maxSize = 100 * 1024 * 1024; 
+    // Handle size check for both Web (file.size) and Native (file.size)
     if (file.size > maxSize) {
       alert(t('errorLargeFile'));
       return;
@@ -166,7 +191,6 @@ const HomeScreen = () => {
     } finally {
       setIsLoading(false);
       setUploadProgress(0);
-      event.target.value = '';
     }
   };
 
@@ -259,7 +283,13 @@ const HomeScreen = () => {
         <View style={styles.uploadHero}>
           <TouchableOpacity 
             style={styles.uploadZone}
-            onPress={() => Platform.OS === 'web' && document.getElementById('audio-upload').click()}
+            onPress={() => {
+              if (Platform.OS === 'web') {
+                document.getElementById('audio-upload').click();
+              } else {
+                handleNativePick();
+              }
+            }}
             activeOpacity={0.9}
           >
             <View style={styles.uploadIconCircle}>
@@ -274,7 +304,7 @@ const HomeScreen = () => {
             </View>
           </TouchableOpacity>
           
-          {/* Hidden Input */}
+          {/* Hidden Input (Web Only) */}
           {Platform.OS === 'web' && (
             <input
               type="file"
