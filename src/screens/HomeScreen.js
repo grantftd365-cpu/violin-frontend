@@ -23,6 +23,7 @@ const HomeScreen = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [musicXml, setMusicXml] = useState(null);
   const [statusMessage, setStatusMessage] = useState('');
+  const [recognizedSong, setRecognizedSong] = useState(null);
 
   useEffect(() => {
     // Test that alerts work
@@ -133,24 +134,19 @@ const HomeScreen = () => {
         const artist = result.metadata.artist;
         const searchQuery = `${title} ${artist} violin sheet music`;
         
-        // Pre-fill the search box for convenience
+        setRecognizedSong({
+          title: title,
+          artist: artist,
+          query: searchQuery
+        });
+        
         setSearchKeyword(searchQuery);
         
-        if (Platform.OS === 'web') {
-          // On Web, use window.confirm to offer immediate search
-          const userWantsSearch = window.confirm(
-            `🎵 Recognized: "${title}"\nby ${artist}\n\n` +
-            `Do you want to search Bing for the standard sheet music?`
-          );
-          
-          if (userWantsSearch) {
-            const bingUrl = `https://cn.bing.com/search?q=${encodeURIComponent(searchQuery)}`;
-            window.open(bingUrl, '_blank');
-          }
-        } else {
-          // Native fallback
-          alert(`🎵 Recognized: ${title} by ${artist}\nSearch term updated.`);
-        }
+        alert(
+          `🎵 Recognized: ${title}\n` +
+          `by ${artist}\n\n` +
+          `Tap the blue button above to find standard sheet music!`
+        );
       }
 
       alert(`Debug: Step 5/6: Response received!\nKeys: ${result ? Object.keys(result).join(', ') : 'null'}\nXML Length: ${result?.musicxml?.length}`);
@@ -264,9 +260,41 @@ const HomeScreen = () => {
       <StatusBar style="auto" />
       
       <View style={styles.header}>
-        <Text style={styles.title}>Violin Sheet Gen (v3.1)</Text>
+        <Text style={styles.title}>Violin Sheet Gen (v3.2)</Text>
         <Text style={styles.subtitle}>YouTube / Bilibili to Sheet Music</Text>
       </View>
+
+      {/* Recognition Card - Shows when song is identified */}
+      {recognizedSong && (
+        <View style={styles.recognitionCard}>
+          <Text style={styles.recognitionTitle}>🎵 Song Identified</Text>
+          <Text style={styles.recognitionSong}>{recognizedSong.title}</Text>
+          <Text style={styles.recognitionArtist}>by {recognizedSong.artist}</Text>
+          
+          <TouchableOpacity 
+            style={styles.searchSheetButton}
+            onPress={() => {
+              const bingUrl = `https://cn.bing.com/search?q=${encodeURIComponent(recognizedSong.query)}`;
+              if (Platform.OS === 'web') {
+                window.open(bingUrl, '_blank');
+              } else {
+                alert(`Please search for: ${recognizedSong.query}`);
+              }
+            }}
+          >
+            <Text style={styles.searchSheetButtonText}>
+              Search Standard Sheet Music
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.dismissButton}
+            onPress={() => setRecognizedSong(null)}
+          >
+            <Text style={styles.dismissButtonText}>Dismiss</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* IMSLP Search Section */}
       <View style={styles.searchSection}>
@@ -512,15 +540,64 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   input: {
-    flex: 1,
     height: 50,
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,
     paddingHorizontal: 15,
-    marginRight: 10,
+    marginBottom: 15,
     backgroundColor: '#fafafa',
   },
+  
+  recognitionCard: {
+    backgroundColor: '#e3f2fd',
+    margin: 15,
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#2196F3',
+    alignItems: 'center',
+  },
+  recognitionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1976D2',
+    marginBottom: 8,
+  },
+  recognitionSong: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  recognitionArtist: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 15,
+  },
+  searchSheetButton: {
+    backgroundColor: '#2196F3',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 8,
+    marginBottom: 10,
+    width: '100%',
+  },
+  searchSheetButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  dismissButton: {
+    padding: 8,
+  },
+  dismissButtonText: {
+    color: '#999',
+    fontSize: 14,
+  },
+
   button: {
     backgroundColor: '#007AFF',
     height: 50,
