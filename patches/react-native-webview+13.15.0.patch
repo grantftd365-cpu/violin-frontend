@@ -1,0 +1,81 @@
+diff --git a/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebViewModuleImpl.java b/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebViewModuleImpl.java
+index 951749c..937c1b3 100644
+--- a/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebViewModuleImpl.java
++++ b/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebViewModuleImpl.java
+@@ -166,7 +166,8 @@ public class RNCWebViewModuleImpl implements ActivityEventListener {
+     private enum MimeType {
+         DEFAULT("*/*"),
+         IMAGE("image"),
+-        VIDEO("video");
++        VIDEO("video"),
++        AUDIO("audio");
+ 
+         private final String value;
+ 
+@@ -253,6 +254,12 @@ public class RNCWebViewModuleImpl implements ActivityEventListener {
+                 extraIntents.add(videoIntent);
+             }
+         }
++        if (acceptsAudio(acceptType)) {
++            Intent audioIntent = getAudioIntent();
++            if (audioIntent != null) {
++                extraIntents.add(audioIntent);
++            }
++        }
+         chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, extraIntents.toArray(new Parcelable[]{}));
+ 
+         if (chooserIntent.resolveActivity(activity.getPackageManager()) != null) {
+@@ -283,6 +290,13 @@ public class RNCWebViewModuleImpl implements ActivityEventListener {
+             }
+         }
+ 
++        if (acceptsAudio(acceptTypes)) {
++            Intent audioIntent = getAudioIntent();
++            if (audioIntent != null) {
++                extraIntents.add(audioIntent);
++            }
++        }
++
+         Intent chooserIntent = new Intent(Intent.ACTION_CHOOSER);
+         if (isCaptureEnabled) {
+             chooserIntent = photoIntent;
+@@ -389,6 +403,11 @@ public class RNCWebViewModuleImpl implements ActivityEventListener {
+         return intent;
+     }
+ 
++    public Intent getAudioIntent() {
++        Intent intent = new Intent(MediaStore.Audio.Media.RECORD_SOUND_ACTION);
++        return intent;
++    }
++
+     private Intent getFileChooserIntent(String acceptTypes) {
+         String _acceptTypes = acceptTypes;
+         if (acceptTypes.isEmpty()) {
+@@ -446,6 +465,27 @@ public class RNCWebViewModuleImpl implements ActivityEventListener {
+         return arrayContainsString(mimeTypes, MimeType.DEFAULT.value) || arrayContainsString(mimeTypes, MimeType.VIDEO.value);
+     }
+ 
++    private Boolean acceptsAudio(String types) {
++        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
++            return false;
++        }
++
++        String mimeType = types;
++        if (types.matches("\\.\\w+")) {
++            mimeType = getMimeTypeFromExtension(types.replace(".", ""));
++        }
++        return mimeType.isEmpty() || mimeType.toLowerCase().contains(MimeType.AUDIO.value);
++    }
++
++    private Boolean acceptsAudio(String[] types) {
++        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
++            return false;
++        }
++
++        String[] mimeTypes = getAcceptedMimeType(types);
++        return arrayContainsString(mimeTypes, MimeType.DEFAULT.value) || arrayContainsString(mimeTypes, MimeType.AUDIO.value);
++    }
++
+     private Boolean arrayContainsString(String[] array, String pattern) {
+         for (String content : array) {
+             if (content.contains(pattern)) {
